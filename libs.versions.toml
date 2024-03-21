@@ -1,0 +1,9 @@
+[versions]
+kotlin = "1.19.21"
+
+[libraries]
+
+[bundles]
+
+[plugins]
+kotlin-jvm = { id = "jvm", version.ref = "kotlin" }

@@ -2,6 +2,7 @@ package io.delilaheve.edgl
 
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSPropertyDeclaration
+import io.delilaheve.edgl.data.ClassGenerationInfo
 import java.io.OutputStream
 
 operator fun OutputStream.plusAssign(str: String) {

@@ -3,6 +3,8 @@ package io.delilaheve.edgl
 import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.symbol.*
 import com.google.devtools.ksp.validate
+import io.delilaheve.edgl.data.DaoProperties
+import io.delilaheve.edgl.data.PrimaryKeyProperties
 import java.io.OutputStream
 import java.time.LocalDateTime
 
@@ -10,6 +12,10 @@ class EdglVisitor(
     private val stream: OutputStream,
     private val logger: KSPLogger
 ) : KSVisitorVoid() {
+
+    companion object {
+        private const val USE_POET = true
+    }
 
     override fun visitClassDeclaration(classDeclaration: KSClassDeclaration, data: Unit) {
         if (classDeclaration.classKind != ClassKind.CLASS) {
@@ -79,6 +85,24 @@ class EdglVisitor(
                 statement += ".autoIncrement()"
             }
             columnDeclarations += "$statement\n"
+        }
+        if (USE_POET) {
+            val daoProperties = DaoProperties(
+                packageName = info.packageName,
+                generatedClassName = info.generatedClassName,
+                originClassName = info.className,
+                primaryKey = PrimaryKeyProperties(
+                    exists = hasDeclaredPrimaryKey,
+                    statement = primaryKeyStatement,
+                    declaration = primaryKeyTypeDeclaration,
+                    propertyName = primaryKeyPropertyName,
+                ),
+                columnDeclarations = columnDeclarations,
+                additionalImports = additionalImports,
+                lookupProperties = lookupProperties
+            )
+            DaoBuilder(properties = daoProperties)
+            return
         }
         stream += "package ${info.packageName}"
         stream += ""

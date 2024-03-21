@@ -1,4 +1,4 @@
-package io.delilaheve.edgl
+package io.delilaheve.edgl.data
 
 data class ClassGenerationInfo(
     val packageName: String,

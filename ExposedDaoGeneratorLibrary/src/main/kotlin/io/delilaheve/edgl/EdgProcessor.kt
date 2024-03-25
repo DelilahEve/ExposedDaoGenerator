@@ -3,12 +3,12 @@ package io.delilaheve.edgl
 import com.google.devtools.ksp.processing.*
 import com.google.devtools.ksp.symbol.*
 import com.google.devtools.ksp.validate
-import java.io.OutputStream
 
-class EdglProcessor(
-    private val codeGenerator: CodeGenerator,
-    private val options: Map<String, String>,
-    private val logger: KSPLogger
+/**
+ * Symbol processor for [TableSchema] data classes.
+ */
+class EdgProcessor(
+    private val codeGenerator: CodeGenerator
 ) : SymbolProcessor {
 
     override fun process(resolver: Resolver): List<KSAnnotated> {
@@ -22,14 +22,10 @@ class EdglProcessor(
                     .toTypedArray()
             )
             symbols.forEach {
-                val info = it.getClassInfo()
-                val stream: OutputStream = codeGenerator.createNewFile(
-                    dependencies = dependencies,
-                    packageName = info.packageName,
-                    fileName = info.generatedClassName
+                it.accept(
+                    EdgVisitor(codeGenerator, dependencies),
+                    Unit
                 )
-                it.accept(EdglVisitor(stream, logger), Unit)
-                stream.close()
             }
             symbols.filterNot { it.validate() }
                 .toList()

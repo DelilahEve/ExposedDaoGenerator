@@ -2,29 +2,37 @@ package io.delilaheve.edgl
 
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSPropertyDeclaration
-import io.delilaheve.edgl.data.ClassGenerationInfo
-import java.io.OutputStream
+import com.squareup.kotlinpoet.TypeName
+import com.squareup.kotlinpoet.ksp.toTypeName
 
-operator fun OutputStream.plusAssign(str: String) {
-    this.write("$str\n".toByteArray())
-}
-
-fun KSClassDeclaration.getClassInfo(): ClassGenerationInfo {
-    val packageName = packageName.asString()
-    val annotation = annotations.first { it.shortName.asString() == TableSchema::class.simpleName }
-    val dataClassName = simpleName.asString()
-    val generatedClassName = annotation.arguments
-        .first { it.name?.asString() == "className" }
-        .value as String
-    return ClassGenerationInfo(
-        packageName = packageName,
-        generatedClassName =  generatedClassName.ifEmpty { "${dataClassName}Table" },
-        className = dataClassName
-    )
-}
-
-fun KSPropertyDeclaration.typeAsString() = type
+/**
+ * Get the simple name for this [KSPropertyDeclaration].
+ */
+fun KSPropertyDeclaration.typeAsString(): String = type
     .resolve()
     .declaration
     .simpleName
     .asString()
+
+/**
+ * Get the [TypeName] for this [KSPropertyDeclaration].
+ */
+fun KSPropertyDeclaration.typeName(): TypeName = type.toTypeName()
+
+/**
+ * Get the nullable [TypeName] for this [KSPropertyDeclaration].
+ */
+fun KSPropertyDeclaration.typeNameNullable(): TypeName = type.resolve()
+    .makeNullable()
+    .toTypeName()
+
+/**
+ * Get the [TypeName] for this [KSClassDeclaration].
+ */
+fun KSClassDeclaration.typeName(): TypeName = asStarProjectedType().toTypeName()
+
+/**
+ * Get the nullable [TypeName] for this [KSClassDeclaration].
+ */
+fun KSClassDeclaration.typeNameNullable(): TypeName = asStarProjectedType().makeNullable()
+    .toTypeName()

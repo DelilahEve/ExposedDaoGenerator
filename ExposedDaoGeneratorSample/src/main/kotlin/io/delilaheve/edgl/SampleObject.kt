@@ -8,9 +8,8 @@ data class SampleObject(
     @PrimaryKey
     val uuid: UUID,
     @LookupKey
-    val name: String,
-    @LookupKey
-    val lastName: String,
-    @LookupKey
+    val title: String,
+    val text: String,
+    val count: Long,
     val timestamp: LocalDateTime
 )

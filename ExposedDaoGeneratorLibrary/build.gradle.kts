@@ -25,6 +25,16 @@ kotlin {
 }
 
 publishing {
+    publications {
+        create<MavenPublication>("mavenJava") {
+            groupId = "io.delilaheve"
+            artifactId = "dao-gen"
+            version = "1.0.0"
+            pom.packaging = "jar"
+            artifact("${layout.buildDirectory}/libs/ExposedDaoGeneratorLibrary.jar")
+        }
+    }
+
     repositories {
         maven {
             name = "GitHubPackages"

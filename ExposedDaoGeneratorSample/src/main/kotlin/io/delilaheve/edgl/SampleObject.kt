@@ -12,4 +12,9 @@ data class SampleObject(
     val text: String,
     val count: Long,
     val timestamp: LocalDateTime
-)
+) {
+    @NonSavable
+    val titleWithText: String
+        get() = "$title: $text"
+
+}

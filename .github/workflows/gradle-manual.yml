@@ -1,4 +1,4 @@
-name: Gradle Package
+name: Gradle Package (Manual Trigger)
 
 on: workflow_dispatch
 

@@ -117,6 +117,7 @@ class DaoBuilder(
             "UUID" -> UUID::class
             "String" -> String::class
             "LocalDateTime" -> String::class
+            "Boolean" -> Boolean::class
             else -> error("Unsupported property type: ${typeAsString()}")
         }
         return Column::class.parameterizedBy(columnParameterType)
@@ -129,6 +130,7 @@ class DaoBuilder(
             "UUID" -> "uuid"
             "String" -> "text"
             "LocalDateTime" -> "text"
+            "Boolean" -> "bool"
             else -> error("Unsupported property type: ${typeAsString()}")
         }
         val wantsAutoIncrement = annotations.firstOrNull { ksAnnotation ->

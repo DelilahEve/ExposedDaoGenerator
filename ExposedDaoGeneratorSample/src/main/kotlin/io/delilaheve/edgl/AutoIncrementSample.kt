@@ -8,6 +8,7 @@ data class AutoIncrementSample(
     val intId: Int,
     val title: String,
     val text: String,
+    val hidden: Boolean,
     @LookupKey
     val timestamp: LocalDateTime
 )

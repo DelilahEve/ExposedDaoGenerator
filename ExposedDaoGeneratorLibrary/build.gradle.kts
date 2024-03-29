@@ -32,7 +32,6 @@ publishing {
             artifactId = "dao-gen"
             version = "1.0.1"
             pom.packaging = "jar"
-//            artifact("$buildDir/libs/ExposedDaoGeneratorLibrary.jar")
         }
     }
 

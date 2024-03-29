@@ -25,7 +25,15 @@ annotation class PrimaryKey(
 /**
  * Marks a property as being a lookup key for a table.
  *
- * Properties marked with this will have a get function generated for them.
+ * Properties marked with this will have a getBy function generated for them.
  */
 @Target(AnnotationTarget.PROPERTY)
 annotation class LookupKey
+
+/**
+ * Marks a property as transient/non-savable.
+ *
+ * Properties marked with this will not have a column generated for them.
+ */
+@Target(AnnotationTarget.PROPERTY)
+annotation class NonSavable

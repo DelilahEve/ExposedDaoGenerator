@@ -28,7 +28,7 @@ class EdgVisitor(
             .first { it.name?.asString() == "className" }
             .value as String
         val properties = classDeclaration.getAllProperties()
-            .filter { it.validate() }
+            .filter { property -> property.validate () && !property.hasAnnotation(NonSavable::class) }
         classDeclaration.asStarProjectedType().toTypeName()
         var hasDeclaredPrimaryKey = false
         val lookupProperties = mutableListOf<KSPropertyDeclaration>()
@@ -38,16 +38,11 @@ class EdgVisitor(
             if (propertyName == "id") {
                 error("'id' in ${classDeclaration.simpleName.asString()} is using a reserved property name.")
             }
-            val propertyAnnotation = it.annotations.firstOrNull { ksAnnotation ->
-                ksAnnotation.shortName.asString() == PrimaryKey::class.simpleName
-            }
-            val isLookupKey = it.annotations.any { ksAnnotation ->
-                ksAnnotation.shortName.asString() == LookupKey::class.simpleName
-            }
+            val wantsPrimaryKey = it.hasAnnotation(PrimaryKey::class)
+            val isLookupKey = it.hasAnnotation(LookupKey::class)
             if (isLookupKey) {
                 lookupProperties.add(it)
             }
-            val wantsPrimaryKey = propertyAnnotation != null
             if (wantsPrimaryKey) {
                 if (!hasDeclaredPrimaryKey) {
                     hasDeclaredPrimaryKey = true

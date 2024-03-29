@@ -31,7 +31,7 @@ publishing {
             artifactId = "dao-gen"
             version = "1.0.0"
             pom.packaging = "jar"
-            artifact("${layout.buildDirectory.dir("libs")}/ExposedDaoGeneratorLibrary.jar")
+            artifact("$buildDir/libs/ExposedDaoGeneratorLibrary.jar")
         }
     }
 

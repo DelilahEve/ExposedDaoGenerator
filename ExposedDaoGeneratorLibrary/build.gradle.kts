@@ -30,7 +30,7 @@ publishing {
             from(components["java"])
             groupId = "io.delilaheve"
             artifactId = "dao-gen"
-            version = "1.0.0"
+            version = "1.0.1"
             pom.packaging = "jar"
             artifact("$buildDir/libs/ExposedDaoGeneratorLibrary.jar")
         }

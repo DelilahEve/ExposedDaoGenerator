@@ -27,6 +27,7 @@ kotlin {
 publishing {
     publications {
         create<MavenPublication>("mavenJava") {
+            from(components["java"])
             groupId = "io.delilaheve"
             artifactId = "dao-gen"
             version = "1.0.0"

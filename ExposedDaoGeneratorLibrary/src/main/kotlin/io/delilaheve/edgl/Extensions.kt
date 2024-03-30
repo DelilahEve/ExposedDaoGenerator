@@ -25,6 +25,13 @@ fun KSPropertyDeclaration.hasAnnotation(annotationClass: KClass<*>): Boolean {
 }
 
 /**
+ * Check if this [KSPropertyDeclaration] is declared as a nullable type.
+ */
+fun KSPropertyDeclaration.isNullable(): Boolean {
+    return type.resolve().isMarkedNullable
+}
+
+/**
  * Get the [TypeName] for this [KSPropertyDeclaration].
  */
 fun KSPropertyDeclaration.typeName(): TypeName = type.toTypeName()

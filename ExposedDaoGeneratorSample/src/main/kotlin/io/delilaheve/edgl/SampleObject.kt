@@ -11,6 +11,8 @@ data class SampleObject(
     val title: String,
     val text: String,
     val count: Long,
+    val tagLine: String?,
+    val tags: List<String>,
     val timestamp: LocalDateTime
 ) {
     @NonSavable

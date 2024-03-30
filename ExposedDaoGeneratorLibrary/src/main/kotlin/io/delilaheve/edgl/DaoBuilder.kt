@@ -118,6 +118,7 @@ class DaoBuilder(
             "String" -> String::class
             "LocalDateTime" -> String::class
             "Boolean" -> Boolean::class
+            "List" -> String::class
             else -> error("Unsupported property type: ${typeAsString()}")
         }
         return Column::class.parameterizedBy(columnParameterType)
@@ -131,6 +132,7 @@ class DaoBuilder(
             "String" -> "text"
             "LocalDateTime" -> "text"
             "Boolean" -> "bool"
+            "List" -> "text"
             else -> error("Unsupported property type: ${typeAsString()}")
         }
         val wantsAutoIncrement = annotations.firstOrNull { ksAnnotation ->
@@ -260,11 +262,16 @@ class DaoBuilder(
     private fun KSPropertyDeclaration.makeInsertUpdateStatement() : String {
         val propertyName = simpleName.asString()
         val isDateTime = typeAsString() == LocalDateTime::class.simpleName
-        return if (isDateTime) {
-            "it[$propertyName] = rowItem.${propertyName}.toString()"
-        } else {
-            "it[$propertyName] = rowItem.${propertyName}"
+        val isList = typeAsString() == List::class.simpleName
+        var statement = when {
+            isDateTime -> "it[$propertyName] = rowItem.${propertyName}.toString()"
+            isList -> "it[$propertyName] = rowItem.${propertyName}.joinToString(\",\")"
+            else -> "it[$propertyName] = rowItem.${propertyName}"
         }
+        if (isNullable()) {
+            statement += "!!"
+        }
+        return statement
     }
 
     private fun makeDeleteFunction() = FunSpec.builder("delete")
@@ -396,10 +403,11 @@ class DaoBuilder(
     private fun KSPropertyDeclaration.makeTransformStatement(): String {
         val propertyName = simpleName.asString()
         val isDateTime = typeAsString() == LocalDateTime::class.simpleName
-        return if (isDateTime) {
-            "$propertyName = LocalDateTime.parse(this[$propertyName])"
-        } else {
-            "$propertyName = this[$propertyName]"
+        val isList = typeAsString() == List::class.simpleName
+        return when {
+            isDateTime -> "$propertyName = LocalDateTime.parse(this[$propertyName])"
+            isList -> "$propertyName = this[$propertyName].split(\",\")"
+            else -> "$propertyName = this[$propertyName]"
         }
     }
 

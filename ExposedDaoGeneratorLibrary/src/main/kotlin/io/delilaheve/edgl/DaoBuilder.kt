@@ -37,7 +37,7 @@ class DaoBuilder(
      * Build the [FileSpec] for this DAO.
      */
     fun build() {
-        val typeSpec = TypeSpec.classBuilder(name = properties.generatedClassName)
+        val typeSpec = TypeSpec.objectBuilder(name = properties.generatedClassName)
             .superclass(Table::class)
             .addProperties(makeColumnDefinitions())
             .addProperty(

@@ -50,10 +50,14 @@ class DaoBuilder(
                 )
             )
             .addInitializerBlock(
-                CodeBlock.of(
-                    "SchemaUtils.create(this@${properties.generatedClassName})\n" +
-                    "SchemaUtils.createMissingTablesAndColumns(this@${properties.generatedClassName})\n"
-                )
+                CodeBlock.builder()
+                    .addStatement("transaction {")
+                    .indent()
+                    .addStatement("SchemaUtils.create(this@${properties.generatedClassName})")
+                    .addStatement("SchemaUtils.createMissingTablesAndColumns(this@${properties.generatedClassName})")
+                    .unindent()
+                    .addStatement("}")
+                    .build()
             )
             .addFunctions(makeFunctions())
             .build()

@@ -55,19 +55,22 @@ class EdgVisitor(
                 }
             }
         }
-        val daoProperties = DaoProperties(
-            packageName = packageName,
-            generatedClassName = generatedClassName.ifEmpty { "${dataClassName}Table" },
-            originClassName = dataClassName,
-            classDeclaration = classDeclaration,
-            primaryKey = primaryKeyPropertyDeclaration!!,
-            originProperties = properties.toList(),
-            lookupProperties = lookupProperties
-        )
-        DaoBuilder(properties = daoProperties).apply {
-            build()
-            writeTo(codeGenerator, dependencies)
+        if (primaryKeyPropertyDeclaration == null) {
+            error("A primary key must be declared for ${classDeclaration.simpleName.asString()}.")
+        } else {
+            val daoProperties = DaoProperties(
+                packageName = packageName,
+                generatedClassName = generatedClassName.ifEmpty { "${dataClassName}Table" },
+                originClassName = dataClassName,
+                classDeclaration = classDeclaration,
+                primaryKey = primaryKeyPropertyDeclaration!!,
+                originProperties = properties.toList(),
+                lookupProperties = lookupProperties
+            )
+            DaoBuilder(properties = daoProperties).apply {
+                build()
+                writeTo(codeGenerator, dependencies)
+            }
         }
     }
-
 }

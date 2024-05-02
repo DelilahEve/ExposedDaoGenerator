@@ -3,8 +3,11 @@ package io.delilaheve.edgl
 import com.google.devtools.ksp.processing.CodeGenerator
 import com.google.devtools.ksp.processing.Dependencies
 import com.google.devtools.ksp.symbol.KSPropertyDeclaration
+import com.google.devtools.ksp.symbol.KSType
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
+import com.squareup.kotlinpoet.ksp.toClassName
+import com.squareup.kotlinpoet.ksp.toTypeName
 import com.squareup.kotlinpoet.ksp.writeTo
 import org.jetbrains.exposed.sql.Column
 import org.jetbrains.exposed.sql.ResultRow
@@ -116,28 +119,42 @@ class DaoBuilder(
 
     private fun KSPropertyDeclaration.makeColumnTypeName(): TypeName {
         val columnParameterType = when (typeAsString()) {
-            "Int" -> Int::class
-            "Long" -> Long::class
-            "UUID" -> UUID::class
-            "String" -> String::class
-            "LocalDateTime" -> String::class
-            "Boolean" -> Boolean::class
-            "List" -> String::class
-            else -> error("Unsupported property type: ${typeAsString()}")
+            "Int" -> typeNameOf<Int>()
+            "Long" -> typeNameOf<Long>()
+            "UUID" -> typeNameOf<UUID>()
+            "String" -> typeNameOf<String>()
+            "LocalDateTime" -> typeNameOf<String>()
+            "Boolean" -> typeNameOf<Boolean>()
+            "List" -> typeNameOf<String>()
+            else -> {
+                val kClass = annotations.firstOrNull { it.shortName.asString() == TypeMapping::class.simpleName }
+                    ?.arguments
+                    ?.firstOrNull { it.name?.getShortName() == "storeAs" }
+                    ?.value as? KSType
+                kClass?.toTypeName() ?: error("Unsupported property type: ${typeAsString()}; resolved kclass of $kClass\"")
+            }
         }
-        return Column::class.parameterizedBy(columnParameterType)
+        return Column::class.asTypeName()
+            .parameterizedBy(columnParameterType)
     }
 
     private fun KSPropertyDeclaration.makeColumnInitializer(): String {
-        val columnType = when (typeAsString()) {
-            "Int" -> "integer"
-            "Long" -> "long"
-            "UUID" -> "uuid"
-            "String" -> "text"
-            "LocalDateTime" -> "text"
-            "Boolean" -> "bool"
-            "List" -> "text"
-            else -> error("Unsupported property type: ${typeAsString()}")
+        val columnType = columnForType(typeAsString())
+            .ifEmpty {
+                val annotationArgs = annotations.firstOrNull { it.shortName.asString() == TypeMapping::class.simpleName }
+                    ?.arguments
+                val columnType = annotationArgs?.first { it.name?.getShortName() == "columnType" }
+                    ?.value as? String
+                if (columnType.isNullOrEmpty()) {
+                    val ksType = annotationArgs?.first { it.name?.getShortName() == "storeAs" }
+                        ?.value as? KSType
+                    columnForType(ksType?.toClassName()?.simpleName.orEmpty())
+                } else {
+                    columnType
+                }
+            }
+        if (columnType.isEmpty()) {
+            error("Unsupported property type: ${typeAsString()}")
         }
         val wantsAutoIncrement = annotations.firstOrNull { ksAnnotation ->
             ksAnnotation.shortName.asString() == PrimaryKey::class.simpleName
@@ -152,6 +169,17 @@ class DaoBuilder(
             ""
         }
         return "$columnType(\"${simpleName.asString()}\")$columnSuffix"
+    }
+
+    private fun columnForType(typeName: String) = when (typeName) {
+        "Int" -> "integer"
+        "Long" -> "long"
+        "UUID" -> "uuid"
+        "String" -> "text"
+        "LocalDateTime" -> "text"
+        "Boolean" -> "bool"
+        "List" -> "text"
+        else -> ""
     }
 
     private fun makeFunctions(): List<FunSpec> {
@@ -270,7 +298,20 @@ class DaoBuilder(
         var statement = when {
             isDateTime -> "it[$propertyName] = rowItem.${propertyName}.toString()"
             isList -> "it[$propertyName] = rowItem.${propertyName}.joinToString(\",\")"
-            else -> "it[$propertyName] = rowItem.${propertyName}"
+            else -> {
+                val statement = "it[$propertyName] = rowItem.${propertyName}"
+                val annotationStatement = annotations.firstOrNull {
+                    it.shortName.asString() == TypeMapping::class.simpleName
+                }
+                    ?.arguments
+                    ?.firstOrNull { it.name?.asString() == "insertStatement" }
+                    ?.value as? String
+                if (annotationStatement.isNullOrEmpty()) {
+                    statement
+                } else {
+                    annotationStatement.format(statement)
+                }
+            }
         }
         if (isNullable()) {
             statement += "!!"
@@ -411,7 +452,21 @@ class DaoBuilder(
         return when {
             isDateTime -> "$propertyName = LocalDateTime.parse(this[$propertyName])"
             isList -> "$propertyName = this[$propertyName].split(\",\")"
-            else -> "$propertyName = this[$propertyName]"
+            else -> {
+                val statement = "$propertyName = this[$propertyName]"
+                val annotationStatement = annotations.firstOrNull {
+                    it.shortName.asString() == TypeMapping::class.simpleName
+                }
+                    ?.arguments
+                    ?.firstOrNull { it.name?.asString() == "transformStatement" }
+                    ?.value as? String
+                if (annotationStatement.isNullOrEmpty()) {
+                    statement
+                } else {
+                    val mapper = annotationStatement.format("this[$propertyName]")
+                    "$propertyName = $mapper"
+                }
+            }
         }
     }
 

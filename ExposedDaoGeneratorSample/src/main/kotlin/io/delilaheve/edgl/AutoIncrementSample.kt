@@ -10,5 +10,11 @@ data class AutoIncrementSample(
     val text: String,
     val hidden: Boolean,
     @LookupKey
-    val timestamp: LocalDateTime
+    val timestamp: LocalDateTime,
+    @TypeMapping(
+        storeAs = Long::class,
+        insertStatement = "%s.value",
+        transformStatement = "CustomLongWrapper(value = %s)"
+    )
+    val customLongWrapper: CustomLongWrapper
 )

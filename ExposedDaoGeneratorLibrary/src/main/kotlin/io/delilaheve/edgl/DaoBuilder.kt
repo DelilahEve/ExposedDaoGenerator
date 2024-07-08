@@ -89,6 +89,29 @@ class DaoBuilder(
                 names = listOf("LocalDateTime")
             )
         }
+        properties.originProperties
+            .mapNotNull {
+                val hasMapping = it.annotations
+                    .any { annotation -> annotation.shortName.asString() == TypeMapping::class.simpleName }
+                if (hasMapping) {
+                    it
+                } else {
+                    null
+                }
+            }
+            .forEach {
+                val declaration = it.type
+                    .resolve()
+                    .declaration
+                val packageName = declaration.packageName
+                    .asString()
+                val className = declaration.simpleName
+                    .asString()
+                fileSpec.addImport(
+                    packageName = packageName,
+                    names = listOf(className)
+                )
+            }
     }
 
     /**

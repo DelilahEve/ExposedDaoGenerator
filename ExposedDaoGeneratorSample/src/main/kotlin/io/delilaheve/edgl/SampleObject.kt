@@ -13,7 +13,8 @@ data class SampleObject(
     val count: Long,
     val tagLine: String?,
     val tags: List<String>,
-    val timestamp: LocalDateTime
+    val timestamp: LocalDateTime,
+    val someFloat: Float
 ) {
     @NonSavable
     val titleWithText: String

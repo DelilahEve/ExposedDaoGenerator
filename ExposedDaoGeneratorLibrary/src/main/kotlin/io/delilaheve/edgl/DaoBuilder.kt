@@ -149,6 +149,7 @@ class DaoBuilder(
             "LocalDateTime" -> typeNameOf<String>()
             "Boolean" -> typeNameOf<Boolean>()
             "List" -> typeNameOf<String>()
+            "Float" -> typeNameOf<String>()
             else -> {
                 val kClass = annotations.firstOrNull { it.shortName.asString() == TypeMapping::class.simpleName }
                     ?.arguments
@@ -202,6 +203,7 @@ class DaoBuilder(
         "LocalDateTime" -> "text"
         "Boolean" -> "bool"
         "List" -> "text"
+        "Float" -> "text"
         else -> ""
     }
 
@@ -316,11 +318,10 @@ class DaoBuilder(
 
     private fun KSPropertyDeclaration.makeInsertUpdateStatement() : String {
         val propertyName = simpleName.asString()
-        val isDateTime = typeAsString() == LocalDateTime::class.simpleName
-        val isList = typeAsString() == List::class.simpleName
-        var statement = when {
-            isDateTime -> "it[$propertyName] = rowItem.${propertyName}.toString()"
-            isList -> "it[$propertyName] = rowItem.${propertyName}.joinToString(\",\")"
+        var statement = when(typeAsString()) {
+            LocalDateTime::class.simpleName -> "it[$propertyName] = rowItem.${propertyName}.toString()"
+            List::class.simpleName -> "it[$propertyName] = rowItem.${propertyName}.joinToString(\",\")"
+            Float::class.simpleName -> "it[$propertyName] = rowItem.${propertyName}.toString()"
             else -> {
                 val statement = "it[$propertyName] = rowItem.${propertyName}"
                 val annotationStatement = annotations.firstOrNull {
@@ -470,11 +471,10 @@ class DaoBuilder(
 
     private fun KSPropertyDeclaration.makeTransformStatement(): String {
         val propertyName = simpleName.asString()
-        val isDateTime = typeAsString() == LocalDateTime::class.simpleName
-        val isList = typeAsString() == List::class.simpleName
-        return when {
-            isDateTime -> "$propertyName = LocalDateTime.parse(this[$propertyName])"
-            isList -> "$propertyName = this[$propertyName].split(\",\")"
+        return when (typeAsString()) {
+            LocalDateTime::class.simpleName -> "$propertyName = LocalDateTime.parse(this[$propertyName])"
+            List::class.simpleName -> "$propertyName = this[$propertyName].split(\",\")"
+            Float::class.simpleName -> "$propertyName = this[$propertyName].toFloat()"
             else -> {
                 val statement = "$propertyName = this[$propertyName]"
                 val annotationStatement = annotations.firstOrNull {

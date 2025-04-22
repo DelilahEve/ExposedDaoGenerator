@@ -30,7 +30,7 @@ publishing {
             from(components["java"])
             groupId = "io.delilaheve"
             artifactId = "dao-gen"
-            version = "1.0.7"
+            version = "1.0.8"
             pom.packaging = "jar"
         }
     }

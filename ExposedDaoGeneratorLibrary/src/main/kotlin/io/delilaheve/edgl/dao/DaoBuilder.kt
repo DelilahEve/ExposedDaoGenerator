@@ -249,12 +249,10 @@ class DaoBuilder(
             LocalDateTime::class.simpleName -> "it[$propertyName] = rowItem.${propertyName}.toString()"
             List::class.simpleName -> "it[$propertyName] = rowItem.${propertyName}.joinToString(\",\")"
             Float::class.simpleName -> "it[$propertyName] = rowItem.${propertyName}.toString()"
-            else -> {
-                if (isSerializable()) {
-                    "it[$propertyName] = Json.encodeToString(rowItem.${propertyName})"
-                } else {
-                    "it[$propertyName] = rowItem.${propertyName}"
-                }
+            else -> when {
+                isSupportedPrimitive() -> "it[$propertyName] = rowItem.${propertyName}"
+                isSerializable() -> "it[$propertyName] = Json.encodeToString(rowItem.${propertyName})"
+                else -> error("Unsupported property type: $propertyName; Did you forget a serializer?")
             }
         }
         if (isNullable()) {

@@ -24,5 +24,4 @@ data class SampleObject(
     @NonSavable
     val titleWithText: String
         get() = "$title: $text"
-
 }

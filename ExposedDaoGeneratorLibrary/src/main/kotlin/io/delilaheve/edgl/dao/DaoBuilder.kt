@@ -358,8 +358,9 @@ class DaoBuilder(
                 .build()
         }
 
-    private fun makeTransformFunction() = FunSpec.Companion.builder("transform")
-        .addModifiers(KModifier.PRIVATE)
+    private fun makeTransformFunction() = FunSpec.Companion
+        .builder("transform")
+        .addModifiers(KModifier.INTERNAL)
         .receiver(ResultRow::class)
         .returns(
             returnType = properties.classDeclaration

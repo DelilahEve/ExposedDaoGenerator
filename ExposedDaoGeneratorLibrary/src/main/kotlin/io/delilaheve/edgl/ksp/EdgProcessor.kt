@@ -1,8 +1,9 @@
-package io.delilaheve.edgl
+package io.delilaheve.edgl.ksp
 
 import com.google.devtools.ksp.processing.*
 import com.google.devtools.ksp.symbol.*
 import com.google.devtools.ksp.validate
+import io.delilaheve.edgl.shared.TableSchema
 
 /**
  * Symbol processor for [TableSchema] data classes.

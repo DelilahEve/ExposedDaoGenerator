@@ -1,4 +1,4 @@
-package io.delilaheve.edgl
+package io.delilaheve.edgl.dao
 
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSPropertyDeclaration

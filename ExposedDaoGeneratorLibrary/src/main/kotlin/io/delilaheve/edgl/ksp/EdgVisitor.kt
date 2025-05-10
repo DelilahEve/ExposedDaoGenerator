@@ -1,10 +1,17 @@
-package io.delilaheve.edgl
+package io.delilaheve.edgl.ksp
 
 import com.google.devtools.ksp.processing.CodeGenerator
 import com.google.devtools.ksp.processing.Dependencies
 import com.google.devtools.ksp.symbol.*
 import com.google.devtools.ksp.validate
 import com.squareup.kotlinpoet.ksp.toTypeName
+import io.delilaheve.edgl.dao.DaoBuilder
+import io.delilaheve.edgl.dao.DaoProperties
+import io.delilaheve.edgl.shared.LookupKey
+import io.delilaheve.edgl.shared.NonSavable
+import io.delilaheve.edgl.shared.PrimaryKey
+import io.delilaheve.edgl.shared.TableSchema
+import io.delilaheve.edgl.shared.hasAnnotation
 
 /**
  * Visits [TableSchema] data classes to generate DAOs for the Jetbrains Exposed framework.
@@ -18,7 +25,7 @@ class EdgVisitor(
         if (classDeclaration.classKind != ClassKind.CLASS || !classDeclaration.modifiers.contains(Modifier.DATA)) {
             error(
                 "TableSchema can only be applied to data classes. " +
-                        "${classDeclaration.simpleName.asString()} is not a data class."
+                    "${classDeclaration.simpleName.asString()} is not a data class."
             )
         }
         val packageName = classDeclaration.packageName.asString()
@@ -27,6 +34,9 @@ class EdgVisitor(
         val generatedClassName = annotation.arguments
             .first { it.name?.asString() == "className" }
             .value as String
+        val hideColumns = annotation.arguments
+            .first { it.name?.asString() == "hideColumns" }
+            .value as Boolean
         val properties = classDeclaration.getAllProperties()
             .filter { property -> property.validate () && !property.hasAnnotation(NonSavable::class) }
         classDeclaration.asStarProjectedType().toTypeName()
@@ -63,12 +73,12 @@ class EdgVisitor(
                 generatedClassName = generatedClassName.ifEmpty { "${dataClassName}Table" },
                 originClassName = dataClassName,
                 classDeclaration = classDeclaration,
-                primaryKey = primaryKeyPropertyDeclaration!!,
+                primaryKey = primaryKeyPropertyDeclaration,
                 originProperties = properties.toList(),
                 lookupProperties = lookupProperties
             )
             DaoBuilder(properties = daoProperties).apply {
-                build()
+                build(hideColumns)
                 writeTo(codeGenerator, dependencies)
             }
         }

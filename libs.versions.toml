@@ -1,9 +1,24 @@
 [versions]
-kotlin = "1.19.21"
+self="1.1.0"
+kotlin="2.1.20"
+ksp="2.1.20-2.0.1"
+kotlin-serialize="1.8.1"
+exposed="0.48.0"
+kotlin-poet="1.16.0"
 
 [libraries]
+kotlin-test = { module="org.jetbrains.kotlin:kotlin-test", version.ref="kotlin" }
+kotlin-serialize-json = { module="org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref="kotlin-serialize" }
+ksp-api = { module="com.google.devtools.ksp:symbol-processing-api", version.ref="ksp" }
+exposed-core = { module="org.jetbrains.exposed:exposed-core", version.ref="exposed" }
+poet = { module="com.squareup:kotlinpoet", version.ref="kotlin-poet" }
+poet-ksp = { module="com.squareup:kotlinpoet-ksp", version.ref="kotlin-poet" }
 
 [bundles]
+kotlin-poet = [ "poet", "poet-ksp" ]
+
 
 [plugins]
-kotlin-jvm = { id = "jvm", version.ref = "kotlin" }
+jvm = { id="org.jetbrains.kotlin.jvm", version.ref="kotlin" }
+serialization = { id="org.jetbrains.kotlin.plugin.serialization", version.ref="kotlin" }
+ksp = { id="com.google.devtools.ksp", version.ref="ksp" }

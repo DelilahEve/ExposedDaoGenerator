@@ -1,8 +1,13 @@
 package io.delilaheve.edgl
 
+import io.delilaheve.edgl.shared.LookupKey
+import io.delilaheve.edgl.shared.NonSavable
+import io.delilaheve.edgl.shared.PrimaryKey
+import io.delilaheve.edgl.shared.TableSchema
 import java.time.LocalDateTime
 import java.util.UUID
 
+@Suppress("unused") // This is purely for example use
 @TableSchema(className = "SampleTable")
 data class SampleObject(
     @PrimaryKey

@@ -1,9 +1,10 @@
-package io.delilaheve.edgl
+package io.delilaheve.edgl.shared
 
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSPropertyDeclaration
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.ksp.toTypeName
+import kotlinx.serialization.Serializable
 import kotlin.reflect.KClass
 
 /**
@@ -16,7 +17,7 @@ fun KSPropertyDeclaration.typeAsString(): String = type
     .asString()
 
 /**
- * Check for the [NonSavable] annotation on this [KSPropertyDeclaration].
+ * Check for the [annotationClass] on this [KSPropertyDeclaration].
  */
 fun KSPropertyDeclaration.hasAnnotation(annotationClass: KClass<*>): Boolean {
     return annotations.any {
@@ -25,10 +26,21 @@ fun KSPropertyDeclaration.hasAnnotation(annotationClass: KClass<*>): Boolean {
 }
 
 /**
+ * Check for the [Serializable] annotation on this [KSPropertyDeclaration].
+ */
+fun KSPropertyDeclaration.isSerializable(): Boolean {
+    return hasAnnotation(Serializable::class)
+}
+
+/**
  * Check if this [KSPropertyDeclaration] is declared as a nullable type.
  */
 fun KSPropertyDeclaration.isNullable(): Boolean {
     return type.resolve().isMarkedNullable
+}
+
+fun KSPropertyDeclaration.isSupportedPrimitive(): Boolean {
+    return supportedPrimitives.keys.contains(typeAsString())
 }
 
 /**

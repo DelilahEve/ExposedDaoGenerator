@@ -1,25 +1,24 @@
 plugins {
-    kotlin("jvm") version "1.9.22"
+    alias(libs.plugins.jvm)
+    alias(libs.plugins.serialization)
+    alias(libs.plugins.ksp)
     id("maven-publish")
 }
 
 group = "io.delilaheve.edgl"
 
-repositories {
-    mavenCentral()
-}
-
 dependencies {
-    testImplementation("org.jetbrains.kotlin:kotlin-test")
-    implementation("com.google.devtools.ksp:symbol-processing-api:1.9.21-1.0.15")
-    implementation("org.jetbrains.exposed:exposed-core:0.48.0")
-    implementation("com.squareup:kotlinpoet:1.16.0")
-    implementation("com.squareup:kotlinpoet-ksp:1.16.0")
+    implementation(libs.kotlin.serialize.json)
+    implementation(libs.ksp.api)
+    implementation(libs.exposed.core)
+    implementation(libs.bundles.kotlin.poet)
+    testImplementation(libs.kotlin.test)
 }
 
 tasks.test {
     useJUnitPlatform()
 }
+
 kotlin {
     jvmToolchain(17)
 }
@@ -30,7 +29,7 @@ publishing {
             from(components["java"])
             groupId = "io.delilaheve"
             artifactId = "dao-gen"
-            version = "1.0.8"
+            version = libs.versions.self.get()
             pom.packaging = "jar"
         }
     }

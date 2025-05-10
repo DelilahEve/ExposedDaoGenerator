@@ -1,4 +1,4 @@
-package io.delilaheve.edgl
+package io.delilaheve.edgl.shared
 
 import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.PropertySpec
@@ -30,3 +30,14 @@ fun propertySpec(
         }
     }
     .build()
+
+internal val supportedPrimitives = mapOf(
+    "Int" to "integer",
+    "Long" to "long",
+    "UUID" to "uuid",
+    "String" to "text",
+    "LocalDateTime" to "text",
+    "Boolean" to "bool",
+    "List" to "text",
+    "Float" to "text"
+)

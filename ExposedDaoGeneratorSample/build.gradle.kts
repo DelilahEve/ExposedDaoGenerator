@@ -1,26 +1,23 @@
 plugins {
-    kotlin("jvm") version "1.9.22"
-    id("com.google.devtools.ksp")
+    alias(libs.plugins.jvm)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.serialization)
 }
 
 group = "io.delilaheve.edg.sample"
 
-repositories {
-    mavenCentral()
-}
-
 dependencies {
+    implementation(libs.kotlin.serialize.json)
+    implementation(libs.exposed.core)
     implementation(project(":ExposedDaoGeneratorLibrary"))
-    implementation("org.jetbrains.exposed:exposed-core:0.48.0")
-
     ksp(project(":ExposedDaoGeneratorLibrary"))
-
-    testImplementation("org.jetbrains.kotlin:kotlin-test")
+    testImplementation(libs.kotlin.test)
 }
 
 tasks.test {
     useJUnitPlatform()
 }
+
 kotlin {
     jvmToolchain(17)
 }

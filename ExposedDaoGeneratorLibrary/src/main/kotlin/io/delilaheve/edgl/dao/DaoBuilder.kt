@@ -99,7 +99,7 @@ class DaoBuilder(
             )
             .addImport(
                 packageName = "kotlinx.serialization",
-                names = listOf("encodeToString")
+                names = listOf("encodeToString", "decodeFromString")
             )
         if (properties.originProperties.any { it.typeAsString() == LocalDateTime::class.simpleName }) {
             fileSpec.addImport(
@@ -249,7 +249,9 @@ class DaoBuilder(
 
     private fun KSPropertyDeclaration.makeInsertUpdateStatement() : String {
         val propertyName = simpleName.asString()
-        var statement = when(typeAsString()) {
+        var statement =  if (isSerializable()) {
+            "it[$propertyName] = Json.encodeToString(rowItem.${propertyName})"
+        } else when(typeAsString()) {
             LocalDateTime::class.simpleName -> "it[$propertyName] = rowItem.${propertyName}.toString()"
             List::class.simpleName -> "it[$propertyName] = rowItem.${propertyName}.joinToString(\",\")"
             Float::class.simpleName -> "it[$propertyName] = rowItem.${propertyName}.toString()"
@@ -395,7 +397,9 @@ class DaoBuilder(
     private fun KSPropertyDeclaration.makeTransformStatement(): String {
         val propertyName = simpleName.asString()
         val propertyType = typeAsString()
-        return when (typeAsString()) {
+        return if (isSerializable()) {
+            "$propertyName = Json.decodeFromString(this[$propertyName])"
+        } else when (typeAsString()) {
             LocalDateTime::class.simpleName -> "$propertyName = LocalDateTime.parse(this[$propertyName])"
             List::class.simpleName -> "$propertyName = this[$propertyName].split(\",\")"
             Float::class.simpleName -> "$propertyName = this[$propertyName].toFloat()"

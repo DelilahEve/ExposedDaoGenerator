@@ -99,7 +99,7 @@ class DaoBuilder(
             )
             .addImport(
                 packageName = "kotlinx.serialization",
-                names = listOf("encodeToString")
+                names = listOf("encodeToString", "decodeFromString")
             )
         if (properties.originProperties.any { it.typeAsString() == LocalDateTime::class.simpleName }) {
             fileSpec.addImport(
@@ -395,13 +395,13 @@ class DaoBuilder(
     private fun KSPropertyDeclaration.makeTransformStatement(): String {
         val propertyName = simpleName.asString()
         val propertyType = typeAsString()
-        return when (typeAsString()) {
-            LocalDateTime::class.simpleName -> "$propertyName = LocalDateTime.parse(this[$propertyName])"
-            List::class.simpleName -> "$propertyName = this[$propertyName].split(\",\")"
-            Float::class.simpleName -> "$propertyName = this[$propertyName].toFloat()"
-            else -> when {
-                isSupportedPrimitive() -> "$propertyName = this[$propertyName]"
-                isSerializable() -> "$propertyName = Json.decodeFromString(this[$propertyName])"
+        return when {
+            isSupportedPrimitive() -> "$propertyName = this[$propertyName]"
+            isSerializable() -> "$propertyName = Json.decodeFromString(this[$propertyName])"
+            else -> when (typeAsString()) {
+                LocalDateTime::class.simpleName -> "$propertyName = LocalDateTime.parse(this[$propertyName])"
+                List::class.simpleName -> "$propertyName = this[$propertyName].split(\",\")"
+                Float::class.simpleName -> "$propertyName = this[$propertyName].toFloat()"
                 else -> error("Unsupported property type: $propertyName:$propertyType; Did you forget a serializer?")
             }
         }

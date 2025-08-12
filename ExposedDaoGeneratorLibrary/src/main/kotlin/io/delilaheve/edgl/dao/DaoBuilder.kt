@@ -97,6 +97,10 @@ class DaoBuilder(
                 packageName = "kotlinx.serialization.json",
                 names = listOf("Json")
             )
+            .addImport(
+                packageName = "kotlinx.serialization",
+                names = listOf("encodeToString")
+            )
         if (properties.originProperties.any { it.typeAsString() == LocalDateTime::class.simpleName }) {
             fileSpec.addImport(
                 packageName = "java.time",

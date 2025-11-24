@@ -5,6 +5,7 @@ import io.delilaheve.edgl.shared.NonSavable
 import io.delilaheve.edgl.shared.PrimaryKey
 import io.delilaheve.edgl.shared.TableSchema
 import java.time.LocalDateTime
+import java.time.ZonedDateTime
 import java.util.UUID
 
 @Suppress("unused") // This is purely for example use
@@ -19,7 +20,10 @@ data class SampleObject(
     val tagLine: String?,
     val tags: List<String>,
     val timestamp: LocalDateTime,
-    val someFloat: Float
+    val otherTimestamp: ZonedDateTime,
+    val someFloat: Float,
+    @LookupKey
+    val nullableUuid: UUID?
 ) {
     @NonSavable
     val titleWithText: String

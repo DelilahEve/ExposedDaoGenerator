@@ -24,6 +24,7 @@ import io.delilaheve.edgl.shared.typeNameNullable
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.Table
 import java.time.LocalDateTime
+import java.time.ZonedDateTime
 
 /**
  * Represents a DAO builder, used to generate a Table class from an annotated data class.
@@ -34,23 +35,21 @@ class DaoBuilder(
     private val properties: DaoProperties
 ) {
 
-    private val fileSpec = FileSpec.Companion.builder(
+    private val fileSpec = FileSpec.builder(
         packageName = properties.packageName,
         fileName = properties.generatedClassName
     )
 
-    private val selectColumns by lazy {
-        properties.originProperties
-            .joinToString(",·") {
-                it.simpleName.asString()
-            }
-    }
+    private val dateClassNames
+        get() = listOf(LocalDateTime::class.simpleName, ZonedDateTime::class.simpleName)
+
+    private var anySerializable = false
 
     /**
      * Build the [FileSpec] for this DAO.
      */
     fun build(hideColumns: Boolean) {
-        val typeSpec = TypeSpec.Companion.objectBuilder(name = properties.generatedClassName)
+        val typeSpec = TypeSpec.objectBuilder(name = properties.generatedClassName)
             .superclass(Table::class)
             .addProperties(makeColumnDefinitions(hideColumns))
             .addProperty(
@@ -63,7 +62,7 @@ class DaoBuilder(
                 )
             )
             .addInitializerBlock(
-                CodeBlock.Companion.builder()
+                CodeBlock.builder()
                     .addStatement("transaction {")
                     .indent()
                     .addStatement("SchemaUtils.create(this@${properties.generatedClassName})")
@@ -93,18 +92,26 @@ class DaoBuilder(
                 packageName = "org.jetbrains.exposed.sql.SqlExpressionBuilder",
                 names = listOf("eq")
             )
-            .addImport(
-                packageName = "kotlinx.serialization.json",
-                names = listOf("Json")
-            )
-            .addImport(
-                packageName = "kotlinx.serialization",
-                names = listOf("encodeToString", "decodeFromString")
-            )
+        if (anySerializable) {
+            fileSpec.addImport(
+                    packageName = "kotlinx.serialization.json",
+                    names = listOf("Json")
+                )
+                .addImport(
+                    packageName = "kotlinx.serialization",
+                    names = listOf("encodeToString", "decodeFromString")
+                )
+        }
         if (properties.originProperties.any { it.typeAsString() == LocalDateTime::class.simpleName }) {
             fileSpec.addImport(
                 packageName = "java.time",
                 names = listOf("LocalDateTime")
+            )
+        }
+        if (properties.originProperties.any { it.typeAsString() == ZonedDateTime::class.simpleName }) {
+            fileSpec.addImport(
+                packageName = "java.time",
+                names = listOf("ZonedDateTime")
             )
         }
     }
@@ -153,7 +160,7 @@ class DaoBuilder(
         return functions
     }
 
-    private fun makeSaveFunction() = FunSpec.Companion.builder(name = "save")
+    private fun makeSaveFunction() = FunSpec.builder(name = "save")
         .addParameter(
             name = "rowItem",
             type = properties.classDeclaration
@@ -164,7 +171,7 @@ class DaoBuilder(
                 .typeNameNullable()
         )
         .addCode(
-            CodeBlock.Companion.builder()
+            CodeBlock.builder()
                 .addStatement("val result = if (get(rowItem.${properties.primaryKeyName}) == null) {")
                 .indent()
                 .addStatement("create(rowItem)")
@@ -179,7 +186,7 @@ class DaoBuilder(
         )
         .build()
 
-    private fun makeCreateFunction() = FunSpec.Companion.builder("create")
+    private fun makeCreateFunction() = FunSpec.builder("create")
         .addModifiers(KModifier.PRIVATE)
         .addParameter(
             name = "rowItem",
@@ -191,7 +198,7 @@ class DaoBuilder(
                 .typeNameNullable()
         )
         .addCode(
-            CodeBlock.Companion.builder()
+            CodeBlock.builder()
                 .addStatement("val result = transaction {")
                 .indent()
                 .addStatement("insert {")
@@ -214,7 +221,7 @@ class DaoBuilder(
         )
         .build()
 
-    private fun makeUpdateFunction() = FunSpec.Companion.builder("update")
+    private fun makeUpdateFunction() = FunSpec.builder("update")
         .addModifiers(KModifier.PRIVATE)
         .addParameter(
             name = "rowItem",
@@ -226,7 +233,7 @@ class DaoBuilder(
                 .typeName()
         )
         .addCode(
-            CodeBlock.Companion.builder()
+            CodeBlock.builder()
                 .addStatement("transaction {")
                 .indent()
                 .addStatement(
@@ -250,14 +257,19 @@ class DaoBuilder(
     private fun KSPropertyDeclaration.makeInsertUpdateStatement() : String {
         val propertyName = simpleName.asString()
         var statement =  if (isSerializable()) {
+            anySerializable = true
             "it[$propertyName] = Json.encodeToString(rowItem.${propertyName})"
         } else when(typeAsString()) {
-            LocalDateTime::class.simpleName -> "it[$propertyName] = rowItem.${propertyName}.toString()"
+            LocalDateTime::class.simpleName,
+            ZonedDateTime::class.simpleName -> "it[$propertyName] = rowItem.${propertyName}.toString()"
             List::class.simpleName -> "it[$propertyName] = rowItem.${propertyName}.joinToString(\",\")"
             Float::class.simpleName -> "it[$propertyName] = rowItem.${propertyName}.toString()"
             else -> when {
                 isSupportedPrimitive() -> "it[$propertyName] = rowItem.${propertyName}"
-                isSerializable() -> "it[$propertyName] = Json.encodeToString(rowItem.${propertyName})"
+                isSerializable() -> {
+                    anySerializable = true
+                    "it[$propertyName] = Json.encodeToString(rowItem.${propertyName})"
+                }
                 else -> error("Unsupported property type: $propertyName; Did you forget a serializer?")
             }
         }
@@ -267,14 +279,14 @@ class DaoBuilder(
         return statement
     }
 
-    private fun makeDeleteFunction() = FunSpec.Companion.builder("delete")
+    private fun makeDeleteFunction() = FunSpec.builder("delete")
         .addParameter(
             name = "rowKey",
             type = properties.primaryKey
                 .typeName()
         )
         .addCode(
-            CodeBlock.Companion.builder()
+            CodeBlock.builder()
                 .addStatement("transaction {")
                 .indent()
                 .addStatement("deleteWhere { ${properties.primaryKeyName} eq rowKey }")
@@ -284,7 +296,7 @@ class DaoBuilder(
         )
         .build()
 
-    private fun makeGetFunction() = FunSpec.Companion.builder("get")
+    private fun makeGetFunction() = FunSpec.builder("get")
         .addParameter(
             name = "rowKey",
             type = properties.primaryKey
@@ -295,10 +307,10 @@ class DaoBuilder(
                 .typeNameNullable()
         )
         .addCode(
-            CodeBlock.Companion.builder()
+            CodeBlock.builder()
                 .addStatement("val result = transaction {")
                 .indent()
-                .addStatement("select($selectColumns)")
+                .addStatement("selectAll()")
                 .indent()
                 .addStatement(".where { ${properties.primaryKeyName}.eq(rowKey) }")
                 .addStatement(".firstOrNull()")
@@ -311,13 +323,13 @@ class DaoBuilder(
         )
         .build()
 
-    private fun makeGetAllFunction() = FunSpec.Companion.builder("getAll")
+    private fun makeGetAllFunction() = FunSpec.builder("getAll")
         .returns(
             returnType = List::class.asTypeName()
                 .parameterizedBy(properties.classDeclaration.typeName())
         )
         .addCode(
-            CodeBlock.Companion.builder()
+            CodeBlock.builder()
                 .addStatement("val result = transaction {")
                 .indent()
                 .addStatement("selectAll().map { it.transform() }")
@@ -333,12 +345,12 @@ class DaoBuilder(
             val funSuffix = it.simpleName
                 .asString()
                 .replaceFirstChar { char -> char.uppercaseChar() }
-            val eqValue = if (it.typeAsString() == LocalDateTime::class.simpleName) {
+            val eqValue = if (it.typeAsString() in dateClassNames) {
                 "rowKey.toString()"
             } else {
                 "rowKey"
             }
-            FunSpec.Companion.builder("getBy$funSuffix")
+            FunSpec.builder("getBy$funSuffix")
                 .addParameter(
                     name = "rowKey",
                     type = it.typeName()
@@ -348,24 +360,32 @@ class DaoBuilder(
                         .parameterizedBy(properties.classDeclaration.typeName())
                 )
                 .addCode(
-                    CodeBlock.Companion.builder()
-                        .addStatement("val result = transaction {")
-                        .indent()
-                        .addStatement("select($selectColumns)")
-                        .indent()
-                        .addStatement(".where { ${it.simpleName.asString()}.eq($eqValue) }")
-                        .addStatement(".map { it.transform() }")
-                        .unindent()
-                        .unindent()
-                        .addStatement("}")
-                        .addStatement("return result")
+                    CodeBlock.builder()
+                        .apply {
+                            if (it.isNullable()) {
+                                addStatement("if (rowKey == null) {")
+                                indent()
+                                addStatement("return emptyList()")
+                                unindent()
+                                addStatement("}")
+                            }
+                            addStatement("val result = transaction {")
+                            indent()
+                            addStatement("selectAll()")
+                            indent()
+                            addStatement(".where { ${it.simpleName.asString()}.eq($eqValue) }")
+                            addStatement(".map { it.transform() }")
+                            unindent()
+                            unindent()
+                            addStatement("}")
+                            addStatement("return result")
+                        }
                         .build()
                 )
                 .build()
         }
 
-    private fun makeTransformFunction() = FunSpec.Companion
-        .builder("transform")
+    private fun makeTransformFunction() = FunSpec.builder("transform")
         .addModifiers(KModifier.INTERNAL)
         .receiver(ResultRow::class)
         .returns(
@@ -373,7 +393,7 @@ class DaoBuilder(
                 .typeName()
         )
         .addCode(
-            CodeBlock.Companion.builder()
+            CodeBlock.builder()
                 .addStatement("val result = ${properties.originClassName}(")
                 .indent()
                 .apply {
@@ -398,14 +418,19 @@ class DaoBuilder(
         val propertyName = simpleName.asString()
         val propertyType = typeAsString()
         return if (isSerializable()) {
+            anySerializable = true
             "$propertyName = Json.decodeFromString(this[$propertyName])"
         } else when (typeAsString()) {
             LocalDateTime::class.simpleName -> "$propertyName = LocalDateTime.parse(this[$propertyName])"
+            ZonedDateTime::class.simpleName -> "$propertyName = ZonedDateTime.parse(this[$propertyName])"
             List::class.simpleName -> "$propertyName = this[$propertyName].split(\",\")"
             Float::class.simpleName -> "$propertyName = this[$propertyName].toFloat()"
             else -> when {
                 isSupportedPrimitive() -> "$propertyName = this[$propertyName]"
-                isSerializable() -> "$propertyName = Json.decodeFromString(this[$propertyName])"
+                isSerializable() -> {
+                    anySerializable = true
+                    "$propertyName = Json.decodeFromString(this[$propertyName])"
+                }
                 else -> error("Unsupported property type: $propertyName:$propertyType; Did you forget a serializer?")
             }
         }

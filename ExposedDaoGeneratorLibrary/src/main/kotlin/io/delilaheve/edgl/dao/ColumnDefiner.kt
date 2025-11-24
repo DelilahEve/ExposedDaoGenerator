@@ -5,6 +5,7 @@ import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.asTypeName
 import com.squareup.kotlinpoet.typeNameOf
+import io.delilaheve.edgl.shared.LookupKey
 import io.delilaheve.edgl.shared.PrimaryKey
 import io.delilaheve.edgl.shared.isSerializable
 import io.delilaheve.edgl.shared.supportedPrimitives
@@ -34,6 +35,7 @@ object ColumnDefiner {
             "UUID" -> typeNameOf<UUID>()
             "String" -> typeNameOf<String>()
             "LocalDateTime" -> typeNameOf<String>()
+            "ZonedDateTime" -> typeNameOf<String>()
             "Boolean" -> typeNameOf<Boolean>()
             "List" -> typeNameOf<String>()
             "Float" -> typeNameOf<String>()
@@ -62,10 +64,21 @@ object ColumnDefiner {
             ?.firstOrNull()
             ?.value as? Boolean
             ?: false
-        val columnSuffix = if (wantsAutoIncrement) {
+        val wantsLookup = annotations
+            .firstOrNull {
+                it.shortName.asString() == LookupKey::class.simpleName
+            }
+            ?.arguments
+            ?.firstOrNull()
+            ?.value as? Boolean
+            ?: false
+        var columnSuffix = if (wantsAutoIncrement) {
             ".autoIncrement()"
         } else {
             ""
+        }
+        if (wantsLookup) {
+            columnSuffix += ".index()"
         }
         return "$columnType(\"${simpleName.asString()}\")$columnSuffix"
     }

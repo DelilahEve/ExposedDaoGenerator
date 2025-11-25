@@ -67,11 +67,7 @@ object ColumnDefiner {
         val wantsLookup = annotations
             .firstOrNull {
                 it.shortName.asString() == LookupKey::class.simpleName
-            }
-            ?.arguments
-            ?.firstOrNull()
-            ?.value as? Boolean
-            ?: false
+            } != null
         var columnSuffix = if (wantsAutoIncrement) {
             ".autoIncrement()"
         } else {

@@ -7,6 +7,7 @@ import com.squareup.kotlinpoet.asTypeName
 import com.squareup.kotlinpoet.typeNameOf
 import io.delilaheve.edgl.shared.LookupKey
 import io.delilaheve.edgl.shared.PrimaryKey
+import io.delilaheve.edgl.shared.isNullable
 import io.delilaheve.edgl.shared.isSerializable
 import io.delilaheve.edgl.shared.supportedPrimitives
 import io.delilaheve.edgl.shared.typeAsString
@@ -40,16 +41,16 @@ object ColumnDefiner {
             typeNameOf<String>()
         } else {
             when (typeAsString()) {
-                "Int" -> typeNameOf<Int>()
-                "Long" -> typeNameOf<Long>()
-                "UUID" -> typeNameOf<UUID>()
-                "Uuid" -> typeNameOf<UUID>()
-                "String" -> typeNameOf<String>()
-                "LocalDateTime" -> typeNameOf<String>()
-                "ZonedDateTime" -> typeNameOf<String>()
-                "Boolean" -> typeNameOf<Boolean>()
-                "List" -> typeNameOf<String>()
-                "Float" -> typeNameOf<String>()
+                "Int" -> typeNameOf<Int>().copy(nullable = isNullable())
+                "Long" -> typeNameOf<Long>().copy(nullable = isNullable())
+                "UUID" -> typeNameOf<UUID>().copy(nullable = isNullable())
+                "Uuid" -> typeNameOf<UUID>().copy(nullable = isNullable())
+                "String" -> typeNameOf<String>().copy(nullable = isNullable())
+                "LocalDateTime" -> typeNameOf<String>().copy(nullable = isNullable())
+                "ZonedDateTime" -> typeNameOf<String>().copy(nullable = isNullable())
+                "Boolean" -> typeNameOf<Boolean>().copy(nullable = isNullable())
+                "List" -> typeNameOf<String>().copy(nullable = isNullable())
+                "Float" -> typeNameOf<String>().copy(nullable = isNullable())
                 else -> {
                     error("Unsupported property type: ${typeAsString()}; Did you forget a serializer?")
                 }
@@ -83,6 +84,9 @@ object ColumnDefiner {
         }
         if (wantsLookup) {
             columnSuffix += ".index()"
+        }
+        if (isNullable()) {
+            columnSuffix += ".nullable()"
         }
         return "$columnType(\"${simpleName.asString()}\")$columnSuffix"
     }

@@ -43,6 +43,7 @@ class DaoBuilder(
      * Build the [FileSpec] for this DAO.
      */
     fun build(hideColumns: Boolean) {
+
         val typeSpec = TypeSpec.objectBuilder(name = properties.generatedClassName)
             .superclass(Table::class)
             .addProperties(makeColumnDefinitions(hideColumns))
@@ -223,52 +224,65 @@ class DaoBuilder(
         )
         .build()
 
-    private fun makeUpdateFunction() = FunSpec.builder("update")
-        .addModifiers(KModifier.PRIVATE)
-        .addParameter(
-            name = "rowItem",
-            type = properties.classDeclaration
-                .typeName()
-        )
-        .returns(
-            returnType = properties.primaryKey
-                .typeName()
-        )
-        .addCode(
-            CodeBlock.builder()
-                .addStatement("transaction {")
-                .indent()
-                .addStatement(
-                    "update({ ${properties.primaryKeyName} eq " +
-                            "rowItem.${properties.primaryKeyName} }) {"
-                )
-                .indent()
-                .apply {
-                    properties.originProperties
-                        .forEach { addStatement(it.makeInsertUpdateStatement()) }
-                }
-                .unindent()
-                .addStatement("}")
-                .unindent()
-                .addStatement("}")
-                .addStatement("return rowItem.${properties.primaryKeyName}")
-                .build()
-        )
-        .build()
+    private fun makeUpdateFunction(): FunSpec {
+        val kotlinUuid = properties.primaryKey.typeAsString() == Uuid::class.simpleName
+        val accessor = if (kotlinUuid) {
+            "rowItem.${properties.primaryKeyName}.toJavaUuid()"
+        } else {
+            "rowItem.${properties.primaryKeyName}"
+        }
+        return FunSpec.builder("update")
+            .addModifiers(KModifier.PRIVATE)
+            .addParameter(
+                name = "rowItem",
+                type = properties.classDeclaration
+                    .typeName()
+            )
+            .returns(
+                returnType = properties.primaryKey
+                    .typeName()
+            )
+            .addCode(
+                CodeBlock.builder()
+                    .addStatement("transaction {")
+                    .indent()
+                    .addStatement(
+                        "update({ ${properties.primaryKeyName} eq " +
+                                "$accessor }) {"
+                    )
+                    .indent()
+                    .apply {
+                        properties.originProperties
+                            .forEach { addStatement(it.makeInsertUpdateStatement()) }
+                    }
+                    .unindent()
+                    .addStatement("}")
+                    .unindent()
+                    .addStatement("}")
+                    .addStatement("return rowItem.${properties.primaryKeyName}")
+                    .build()
+            )
+            .build()
+    }
 
     private fun KSPropertyDeclaration.makeInsertUpdateStatement() : String {
+        val separator = if (isNullable()) {
+            "?."
+        } else {
+            "."
+        }
         val propertyName = simpleName.asString()
-        var statement =  if (isSerializable()) {
+        val statement =  if (isSerializable()) {
             anySerializable = true
             "it[$propertyName] = Json.encodeToString(rowItem.${propertyName})"
         } else when(typeAsString()) {
             LocalDateTime::class.simpleName,
-            ZonedDateTime::class.simpleName -> "it[$propertyName] = rowItem.${propertyName}.toString()"
-            List::class.simpleName -> "it[$propertyName] = rowItem.${propertyName}.joinToString(\",\")"
-            Float::class.simpleName -> "it[$propertyName] = rowItem.${propertyName}.toString()"
+            ZonedDateTime::class.simpleName -> "it[$propertyName] = rowItem.${propertyName}${separator}toString()"
+            List::class.simpleName -> "it[$propertyName] = rowItem.${propertyName}${separator}joinToString(\",\")"
+            Float::class.simpleName -> "it[$propertyName] = rowItem.${propertyName}${separator}toString()"
             Uuid::class.simpleName -> {
                 usesKotlinUuid = true
-                "it[$propertyName] = rowItem.${propertyName}.toJavaUuid()"
+                "it[$propertyName] = rowItem.${propertyName}${separator}toJavaUuid()"
             }
             else -> when {
                 isSupportedPrimitive() -> "it[$propertyName] = rowItem.${propertyName}"
@@ -279,55 +293,68 @@ class DaoBuilder(
                 else -> error("Unsupported property type: $propertyName; Did you forget a serializer?")
             }
         }
-        if (isNullable()) {
-            statement += "!!"
-        }
         return statement
     }
 
-    private fun makeDeleteFunction() = FunSpec.builder("delete")
-        .addParameter(
-            name = "rowKey",
-            type = properties.primaryKey
-                .typeName()
-        )
-        .addCode(
-            CodeBlock.builder()
-                .addStatement("transaction {")
-                .indent()
-                .addStatement("deleteWhere { ${properties.primaryKeyName} eq rowKey }")
-                .unindent()
-                .addStatement("}")
-                .build()
-        )
-        .build()
+    private fun makeDeleteFunction(): FunSpec {
+        val kotlinUuid = properties.primaryKey.typeAsString() == Uuid::class.simpleName
+        val accessor = if (kotlinUuid) {
+            "rowKey.toJavaUuid()"
+        } else {
+            "rowKey"
+        }
+        return FunSpec.builder("delete")
+            .addParameter(
+                name = "rowKey",
+                type = properties.primaryKey
+                    .typeName()
+            )
+            .addCode(
+                CodeBlock.builder()
+                    .addStatement("transaction {")
+                    .indent()
+                    .addStatement("deleteWhere { ${properties.primaryKeyName} eq $accessor }")
+                    .unindent()
+                    .addStatement("}")
+                    .build()
+            )
+            .build()
+    }
 
-    private fun makeGetFunction() = FunSpec.builder("get")
-        .addParameter(
-            name = "rowKey",
-            type = properties.primaryKey
-                .typeName()
-        )
-        .returns(
-            returnType = properties.classDeclaration
-                .typeNameNullable()
-        )
-        .addCode(
-            CodeBlock.builder()
-                .addStatement("val result = transaction {")
-                .indent()
-                .addStatement("selectAll()")
-                .indent()
-                .addStatement(".where { ${properties.primaryKeyName}.eq(rowKey) }")
-                .addStatement(".firstOrNull()")
-                .addStatement("?.transform()")
-                .unindent()
-                .unindent()
-                .addStatement("}")
-                .addStatement("return result")
-                .build()
-        )
-        .build()
+    private fun makeGetFunction(): FunSpec {
+        val kotlinUuid = properties.primaryKey.typeAsString() == Uuid::class.simpleName
+        val accessor = if (kotlinUuid) {
+            "rowKey.toJavaUuid()"
+        } else {
+            "rowKey"
+        }
+        return FunSpec.builder("get")
+            .addParameter(
+                name = "rowKey",
+                type = properties.primaryKey
+                    .typeName()
+            )
+            .returns(
+                returnType = properties.classDeclaration
+                    .typeNameNullable()
+            )
+            .addCode(
+                CodeBlock.builder()
+                    .addStatement("val result = transaction {")
+                    .indent()
+                    .addStatement("selectAll()")
+                    .indent()
+                    .addStatement(".where { ${properties.primaryKeyName}.eq($accessor) }")
+                    .addStatement(".firstOrNull()")
+                    .addStatement("?.transform()")
+                    .unindent()
+                    .unindent()
+                    .addStatement("}")
+                    .addStatement("return result")
+                    .build()
+            )
+            .build()
+    }
 
     private fun makeGetAllFunction() = FunSpec.builder("getAll")
         .returns(
@@ -351,12 +378,11 @@ class DaoBuilder(
             val funSuffix = it.simpleName
                 .asString()
                 .replaceFirstChar { char -> char.uppercaseChar() }
-            val eqValue = if (it.typeAsString() in dateClassNames) {
-                "rowKey.toString()"
-            } else if (it.isSerializable()) {
-                "Json.encodeToString(rowKey)"
-            } else {
-                "rowKey"
+            val eqValue = when {
+                it.typeAsString() in dateClassNames -> "rowKey.toString()"
+                it.isSerializable() -> "Json.encodeToString(rowKey)"
+                it.typeAsString() == Uuid::class.simpleName -> "rowKey.toJavaUuid()"
+                else -> "rowKey"
             }
             FunSpec.builder("getBy$funSuffix")
                 .addParameter(
@@ -423,6 +449,11 @@ class DaoBuilder(
         .build()
 
     private fun KSPropertyDeclaration.makeTransformStatement(): String {
+        val separator = if (isNullable()) {
+            "?."
+        } else {
+            "."
+        }
         val propertyName = simpleName.asString()
         val propertyType = typeAsString()
         return if (isSerializable()) {
@@ -431,9 +462,9 @@ class DaoBuilder(
         } else when (typeAsString()) {
             LocalDateTime::class.simpleName -> "$propertyName = LocalDateTime.parse(this[$propertyName])"
             ZonedDateTime::class.simpleName -> "$propertyName = ZonedDateTime.parse(this[$propertyName])"
-            List::class.simpleName -> "$propertyName = this[$propertyName].split(\",\")"
-            Float::class.simpleName -> "$propertyName = this[$propertyName].toFloat()"
-            Uuid::class.simpleName -> "$propertyName = this[$propertyName].toKotlinUuid()"
+            List::class.simpleName -> "$propertyName = this[$propertyName]${separator}split(\",\")"
+            Float::class.simpleName -> "$propertyName = this[$propertyName]${separator}toFloat()"
+            Uuid::class.simpleName -> "$propertyName = this[$propertyName]${separator}toKotlinUuid()"
             else -> when {
                 isSupportedPrimitive() -> "$propertyName = this[$propertyName]"
                 isSerializable() -> {

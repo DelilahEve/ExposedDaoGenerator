@@ -16,19 +16,20 @@ import kotlin.uuid.Uuid
 @TableSchema(className = "SampleTable")
 data class SampleObject constructor(
     @PrimaryKey
-    val uuid: UUID,
+    val uuid: Uuid,
     @LookupKey
     val title: String,
     val text: String,
-    val count: Long,
+    val count: Long?,
     val tagLine: String?,
-    val tags: List<String>,
-    val timestamp: LocalDateTime,
-    val otherTimestamp: ZonedDateTime,
-    val someFloat: Float,
+    val tags: List<String>?,
+    val timestamp: LocalDateTime?,
+    val otherTimestamp: ZonedDateTime?,
+    val someFloat: Float?,
     @LookupKey
     val nullableUuid: UUID?,
-    val kotlinUuid: Uuid
+    @LookupKey
+    val kotlinUuid: Uuid?
 ) {
     @NonSavable
     val titleWithText: String

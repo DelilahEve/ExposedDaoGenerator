@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalUuidApi::class)
+
 package io.delilaheve.edgl
 
 import io.delilaheve.edgl.shared.LookupKey
@@ -7,10 +9,12 @@ import io.delilaheve.edgl.shared.TableSchema
 import java.time.LocalDateTime
 import java.time.ZonedDateTime
 import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 @Suppress("unused") // This is purely for example use
 @TableSchema(className = "SampleTable")
-data class SampleObject(
+data class SampleObject constructor(
     @PrimaryKey
     val uuid: UUID,
     @LookupKey
@@ -23,7 +27,8 @@ data class SampleObject(
     val otherTimestamp: ZonedDateTime,
     val someFloat: Float,
     @LookupKey
-    val nullableUuid: UUID?
+    val nullableUuid: UUID?,
+    val kotlinUuid: Uuid
 ) {
     @NonSavable
     val titleWithText: String

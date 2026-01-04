@@ -43,7 +43,7 @@ object ColumnDefiner {
                 "Int" -> typeNameOf<Int>()
                 "Long" -> typeNameOf<Long>()
                 "UUID" -> typeNameOf<UUID>()
-                "Uuid" -> typeNameOf<Uuid>()
+                "Uuid" -> typeNameOf<UUID>()
                 "String" -> typeNameOf<String>()
                 "LocalDateTime" -> typeNameOf<String>()
                 "ZonedDateTime" -> typeNameOf<String>()

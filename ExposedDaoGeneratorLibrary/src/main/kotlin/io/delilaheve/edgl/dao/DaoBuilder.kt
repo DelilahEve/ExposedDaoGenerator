@@ -1,30 +1,22 @@
+@file:OptIn(ExperimentalUuidApi::class)
+
 package io.delilaheve.edgl.dao
 
 import com.google.devtools.ksp.processing.CodeGenerator
 import com.google.devtools.ksp.processing.Dependencies
 import com.google.devtools.ksp.symbol.KSPropertyDeclaration
-import com.squareup.kotlinpoet.CodeBlock
-import com.squareup.kotlinpoet.FileSpec
-import com.squareup.kotlinpoet.FunSpec
-import com.squareup.kotlinpoet.KModifier
+import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
-import com.squareup.kotlinpoet.PropertySpec
-import com.squareup.kotlinpoet.TypeSpec
-import com.squareup.kotlinpoet.asTypeName
 import com.squareup.kotlinpoet.ksp.writeTo
 import io.delilaheve.edgl.dao.ColumnDefiner.makeColumnInitializer
 import io.delilaheve.edgl.dao.ColumnDefiner.makeColumnTypeName
-import io.delilaheve.edgl.shared.isNullable
-import io.delilaheve.edgl.shared.isSerializable
-import io.delilaheve.edgl.shared.isSupportedPrimitive
-import io.delilaheve.edgl.shared.propertySpec
-import io.delilaheve.edgl.shared.typeAsString
-import io.delilaheve.edgl.shared.typeName
-import io.delilaheve.edgl.shared.typeNameNullable
+import io.delilaheve.edgl.shared.*
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.Table
 import java.time.LocalDateTime
 import java.time.ZonedDateTime
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 /**
  * Represents a DAO builder, used to generate a Table class from an annotated data class.
@@ -44,6 +36,8 @@ class DaoBuilder(
         get() = listOf(LocalDateTime::class.simpleName, ZonedDateTime::class.simpleName)
 
     private var anySerializable = false
+
+    private var usesKotlinUuid = false
 
     /**
      * Build the [FileSpec] for this DAO.
@@ -72,8 +66,10 @@ class DaoBuilder(
                     .build()
             )
             .addFunctions(makeFunctions())
-            .build()
-        fileSpec.addType(typeSpec)
+        if (usesKotlinUuid) {
+            typeSpec.addAnnotation(ExperimentalUuidApi::class)
+        }
+        fileSpec.addType(typeSpec.build())
             .addImport(
                 packageName = "org.jetbrains.exposed.sql",
                 names = listOf(
@@ -101,6 +97,12 @@ class DaoBuilder(
                     packageName = "kotlinx.serialization",
                     names = listOf("encodeToString", "decodeFromString")
                 )
+        }
+        if (usesKotlinUuid) {
+            fileSpec.addImport(
+                packageName = "kotlin.uuid",
+                names = listOf("toJavaUuid", "toKotlinUuid")
+            )
         }
         if (properties.originProperties.any { it.typeAsString() == LocalDateTime::class.simpleName }) {
             fileSpec.addImport(
@@ -264,6 +266,10 @@ class DaoBuilder(
             ZonedDateTime::class.simpleName -> "it[$propertyName] = rowItem.${propertyName}.toString()"
             List::class.simpleName -> "it[$propertyName] = rowItem.${propertyName}.joinToString(\",\")"
             Float::class.simpleName -> "it[$propertyName] = rowItem.${propertyName}.toString()"
+            Uuid::class.simpleName -> {
+                usesKotlinUuid = true
+                "it[$propertyName] = rowItem.${propertyName}.toJavaUuid()"
+            }
             else -> when {
                 isSupportedPrimitive() -> "it[$propertyName] = rowItem.${propertyName}"
                 isSerializable() -> {
@@ -427,6 +433,7 @@ class DaoBuilder(
             ZonedDateTime::class.simpleName -> "$propertyName = ZonedDateTime.parse(this[$propertyName])"
             List::class.simpleName -> "$propertyName = this[$propertyName].split(\",\")"
             Float::class.simpleName -> "$propertyName = this[$propertyName].toFloat()"
+            Uuid::class.simpleName -> "$propertyName = this[$propertyName].toKotlinUuid()"
             else -> when {
                 isSupportedPrimitive() -> "$propertyName = this[$propertyName]"
                 isSerializable() -> {

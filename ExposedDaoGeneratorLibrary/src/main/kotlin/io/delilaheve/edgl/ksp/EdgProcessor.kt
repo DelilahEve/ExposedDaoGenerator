@@ -13,19 +13,19 @@ class EdgProcessor(
 ) : SymbolProcessor {
 
     override fun process(resolver: Resolver): List<KSAnnotated> {
+        val newFiles = resolver.getNewFiles().toSet()
         val symbols = resolver.getSymbolsWithAnnotation(TableSchema::class.qualifiedName!!)
             .filterIsInstance<KSClassDeclaration>()
+            .filter { it.containingFile in newFiles }
         return if (symbols.iterator().hasNext()) {
-            val dependencies = Dependencies(
-                aggregating = false,
-                sources = resolver.getAllFiles()
-                    .toList()
-                    .toTypedArray()
-            )
             symbols.forEach {
+                val dependencies = Dependencies(
+                    aggregating = false,
+                    sources = arrayOf(it.containingFile!!)
+                )
                 it.accept(
-                    EdgVisitor(codeGenerator, dependencies),
-                    Unit
+                    visitor = EdgVisitor(codeGenerator, dependencies),
+                    data = Unit
                 )
             }
             symbols.filterNot { it.validate() }

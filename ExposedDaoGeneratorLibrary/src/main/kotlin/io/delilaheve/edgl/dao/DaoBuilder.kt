@@ -347,6 +347,8 @@ class DaoBuilder(
                 .replaceFirstChar { char -> char.uppercaseChar() }
             val eqValue = if (it.typeAsString() in dateClassNames) {
                 "rowKey.toString()"
+            } else if (it.isSerializable()) {
+                "Json.encodeToString(rowKey)"
             } else {
                 "rowKey"
             }

@@ -13,6 +13,8 @@ import io.delilaheve.edgl.shared.typeAsString
 import org.jetbrains.exposed.sql.Column
 import java.util.UUID
 import kotlin.text.isEmpty
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 object ColumnDefiner {
 
@@ -25,24 +27,30 @@ object ColumnDefiner {
             }
         }
     ): String {
-        return supportedPrimitives[typeAsString()] ?: elseBlock()
+        return if (isSerializable()) {
+            "text"
+        } else {
+            supportedPrimitives[typeAsString()] ?: elseBlock()
+        }
     }
 
+    @OptIn(ExperimentalUuidApi::class)
     fun KSPropertyDeclaration.makeColumnTypeName(): TypeName {
-        val columnParameterType = when (typeAsString()) {
-            "Int" -> typeNameOf<Int>()
-            "Long" -> typeNameOf<Long>()
-            "UUID" -> typeNameOf<UUID>()
-            "String" -> typeNameOf<String>()
-            "LocalDateTime" -> typeNameOf<String>()
-            "ZonedDateTime" -> typeNameOf<String>()
-            "Boolean" -> typeNameOf<Boolean>()
-            "List" -> typeNameOf<String>()
-            "Float" -> typeNameOf<String>()
-            else -> {
-                if (isSerializable()) {
-                    typeNameOf<String>()
-                } else {
+        val columnParameterType = if (isSerializable()) {
+            typeNameOf<String>()
+        } else {
+            when (typeAsString()) {
+                "Int" -> typeNameOf<Int>()
+                "Long" -> typeNameOf<Long>()
+                "UUID" -> typeNameOf<UUID>()
+                "Uuid" -> typeNameOf<Uuid>()
+                "String" -> typeNameOf<String>()
+                "LocalDateTime" -> typeNameOf<String>()
+                "ZonedDateTime" -> typeNameOf<String>()
+                "Boolean" -> typeNameOf<Boolean>()
+                "List" -> typeNameOf<String>()
+                "Float" -> typeNameOf<String>()
+                else -> {
                     error("Unsupported property type: ${typeAsString()}; Did you forget a serializer?")
                 }
             }

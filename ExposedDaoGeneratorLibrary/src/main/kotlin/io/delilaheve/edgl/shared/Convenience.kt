@@ -35,6 +35,7 @@ internal val supportedPrimitives = mapOf(
     "Int" to "integer",
     "Long" to "long",
     "UUID" to "uuid",
+    "Uuid" to "uuid",
     "String" to "text",
     "LocalDateTime" to "text",
     "ZonedDateTime" to "text",
